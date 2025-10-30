@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphHopper Route</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div id="sidebar">
+        <h1>Routing Prototype</h1>
+        
+        <div class="theme-switch-wrapper">
+            <span>Dark Mode</span>
+            <label class="theme-switch" for="theme-toggle">
+                <input type="checkbox" id="theme-toggle" />
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <p>Click on the map to add points, or enter locations below.</p>
+        
+        <div id="warning-message"></div>
+        <div id="route-summary"></div>
+
+        <div id="controls">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <span class="input-icon start-icon"></span>
+                    <input type="text" id="from-loc" placeholder="Choose starting point..." autocomplete="off">
+                    <div id="from-suggestions" class="autocomplete-suggestions"></div>
+                </div>
+
+                <div id="via-locations-container"></div>
+
+                <div class="input-wrapper">
+                    <span class="input-icon end-icon"></span>
+                    <input type="text" id="to-loc" placeholder="Choose destination..." autocomplete="off">
+                    <div id="to-suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <button id="swap-btn" title="Swap locations"></button>
+            </div>
+
+            <button id="add-location-btn">+ Add location</button>
+            
+            <button id="search-btn">Get Route</button>
+        </div>
+        
+        <button id="clear-btn">Clear All</button>
+    </div>
+
+    <div id="map-container">
+        <div id="loader"></div>
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>

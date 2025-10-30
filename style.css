@@ -1,0 +1,570 @@
+/* --- Request 6: CSS Variables for Dark Mode --- */
+:root {
+    --bg-sidebar: #f8f8f8;
+    --bg-map-container: #fff;
+    --text-primary: #333;
+    --text-secondary: #555;
+    --border-color: #ccc;
+    --border-highlight: #007bff;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --shadow-focus: rgba(0, 123, 255, 0.4);
+    --button-primary-bg: #007bff;
+    --button-primary-hover: #0069d9;
+    --button-danger-bg: #dc3545;
+    --button-danger-hover: #c82333;
+    --loader-bg: rgba(255, 255, 255, 0.9);
+    --loader-spin: #007bff;
+    --map-filter: none;
+}
+
+body.dark-mode {
+    --bg-sidebar: #2c2c2e;
+    --bg-map-container: #1a1a1a;
+    --text-primary: #f1f1f1;
+    --text-secondary: #aaaaaa;
+    --border-color: #555;
+    --border-highlight: #007bff;
+    --shadow-light: rgba(255, 255, 255, 0.1);
+    --shadow-focus: rgba(0, 123, 255, 0.4);
+    --button-primary-bg: #007bff;
+    --button-primary-hover: #0056b3;
+    --button-danger-bg: #dc3545;
+    --button-danger-hover: #b02a37;
+    --loader-bg: rgba(44, 44, 46, 0.9);
+    --loader-spin: #007bff;
+    --map-filter: invert(1) brightness(0.8) hue-rotate(180deg);
+}
+/* --- End of Color Variables --- */
+
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row; 
+    height: 100vh;
+    overflow: hidden; 
+    /* Apply base colors */
+    background-color: var(--bg-map-container);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease;
+}
+
+#sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    gap: 1.25rem; /* Request 1: Better spacing for content */
+    background-color: var(--bg-sidebar);
+    box-shadow: 2px 0 5px var(--shadow-light);
+    transition: background-color 0.3s ease;
+}
+
+#sidebar h1, #sidebar p {
+    text-align: left;
+    margin: 0;
+}
+
+#sidebar p {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+#controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#controls input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-map-container);
+    color: var(--text-primary);
+    border-radius: 4px;
+    box-sizing: border-box; 
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+}
+
+#controls input[type="text"]:focus {
+    border-color: var(--border-highlight);
+    box-shadow: 0 0 5px var(--shadow-focus);
+}
+
+/* --- UPDATED: Control styles (Request 2) --- */
+#controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Increased gap */
+}
+
+.input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative; /* For the swap button */
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Base style for icons */
+.input-icon {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    z-index: 2;
+}
+/* Start point icon (circle) */
+.start-icon::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 50%;
+}
+/* End point icon (pin) */
+.end-icon::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    transform: rotate(45deg);
+    border: 2px solid var(--text-secondary);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+body.dark-mode .start-icon::before {
+    border-color: var(--text-secondary);
+}
+body.dark-mode .end-icon::before {
+    background-color: var(--text-secondary);
+    border-color: var(--text-secondary);
+}
+
+
+#controls input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    padding-left: 35px; /* Make space for icon */
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-map-container);
+    color: var(--text-primary);
+    border-radius: 4px;
+    box-sizing: border-box; 
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+}
+/* ... [rest of input:focus style] ... */
+
+/* New Swap Button Style */
+#swap-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    background-color: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    /* Unicode arrows for swap icon */
+    content: '\2195'; 
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z" fill="%23555"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 14px 14px;
+    transition: all 0.2s ease;
+}
+body.dark-mode #swap-btn {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-up" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z" fill="%23aaa"/></svg>');
+}
+#swap-btn:hover {
+    transform: translateY(-50%) rotate(180deg);
+    box-shadow: 0 0 5px var(--shadow-focus);
+}
+
+#search-btn, #clear-btn {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    /* Request 5: Added transform to transitions */
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Request 5: Hover transforms */
+#search-btn:hover, #clear-btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 10px var(--shadow-light);
+}
+
+#search-btn {
+    background-color: var(--button-primary-bg);
+}
+#search-btn:hover {
+    background-color: var(--button-primary-hover);
+}
+
+#clear-btn {
+    background-color: var(--button-danger-bg);
+}
+#clear-btn:hover {
+    background-color: var(--button-danger-hover);
+}
+
+#map-container {
+    flex-grow: 1;
+    height: 100vh;
+    position: relative; 
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+}
+
+/* --- Dark Mode for Map Tiles --- */
+body.dark-mode .leaflet-tile-container {
+    filter: var(--map-filter);
+}
+
+/* --- Request 4: Loader Fade Effect --- */
+#loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--loader-bg);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px var(--shadow-light);
+    z-index: 2000;
+    /* Hide by default */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+/* New class to show the loader */
+#loader.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#loader::after {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 50px;
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid var(--loader-spin);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Request 3: Prominent Popup "X" --- */
+.leaflet-popup-close-button {
+    font-size: 1.5rem !important; /* Make it bigger */
+    font-weight: bold;
+    color: var(--text-secondary) !important;
+    padding: 4px !important;
+    border-radius: 50%;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.leaflet-popup-close-button:hover {
+    color: var(--text-primary) !important;
+    background-color: var(--border-color);
+}
+/* Dark mode popup styling */
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background: var(--bg-sidebar);
+    color: var(--text-primary);
+}
+
+/* --- Request 2: "Remove" Button in Popup --- */
+.remove-marker-btn {
+    display: block;
+    width: 100%;
+    padding: 6px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-danger-bg);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+.remove-marker-btn:hover {
+    background-color: var(--button-danger-hover);
+}
+
+/* --- Request 6: Dark Mode Toggle Switch Styles --- */
+.theme-switch-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.theme-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+.theme-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: var(--button-primary-bg);
+}
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* * --- *** NEW: Warning Message Style (Request 2) *** --- 
+ */
+#warning-message {
+    color: var(--button-danger-bg);
+    font-weight: bold;
+    font-size: 0.9em;
+    padding: 10px;
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 4px;
+    text-align: center;
+    
+    /* Hidden by default */
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* --- *** NEW: Autocomplete Styles (Request 3) *** --- */
+
+/* * This positions the suggestion list relative to the input wrapper.
+ * It's why we needed the .input-wrapper div in the HTML.
+*/
+
+/* --- *** Autocomplete Styles *** --- */
+
+.autocomplete-suggestions {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%; /* Position right below the input */
+    left: 0;
+    right: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    z-index: 9999;
+    box-shadow: 0 5px 10px var(--shadow-light);
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: var(--button-primary-hover);
+    color: white;
+}
+
+.suggestion-item strong {
+    color: var(--text-primary);
+    display: block;
+    font-size: 0.95em;
+}
+.suggestion-item:hover strong {
+    color: white;
+}
+
+.suggestion-item small {
+    color: var(--text-secondary);
+    font-size: 0.8em
+}
+
+/* --- *** UPDATED: Modern Marker Icon *** --- */
+/* This is the new dot */
+.modern-marker {
+    background-color: var(--button-primary-bg);
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px var(--shadow-light);
+    
+    /* *** THIS IS THE FIX: *** */
+    /* This forces the border inside the 16x16 icon box,
+       making the [8, 8] anchor perfectly centered. */
+    box-sizing: border-box; 
+}
+
+/* --- *** NEW: Route Summary Styles *** --- */
+#route-summary {
+    display: none; /* Hidden by default */
+    padding: 15px;
+    background-color: var(--bg-map-container);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-align: center;
+}
+.route-time {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 5px;
+}
+.route-dist {
+    font-size: 1em;
+    color: var(--text-secondary);
+}
+
+/* This resets Leaflet's default ugly box for divIcons */
+.leaflet-div-icon {
+    background: none;
+    border: none;
+}
+
+/* --- *** NEW: "Add location" Button *** --- */
+#add-location-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 10px;
+    text-align: left;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+#add-location-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--border-color);
+}
+
+/* --- *** NEW: "Via" Input Styles *** --- */
+.via-input-wrapper {
+    position: relative; /* For the remove button */
+    margin-top: 10px; /* Add some space */
+}
+.via-icon::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+}
+
+/* "Remove" (minus) button for Via points */
+.remove-loc-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background-color: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--text-secondary);
+    font-size: 1.2em;
+    line-height: 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.remove-loc-btn:hover {
+    background-color: var(--button-danger-bg);
+    border-color: var(--button-danger-bg);
+    color: white;
+}
+.via-input-wrapper input {
+    /* Make space for the remove button */
+    padding-right: 40px !important;
+}
+
+/* --- *** NEW: Responsive Styles (Mobile) *** --- */
+
+@media (max-width: 900px) {
+    
+    /* Change layout to stack vertically */
+    body {
+        flex-direction: column;
+    }
+
+    /* Make sidebar full-width and auto-height */
+    #sidebar {
+        width: 100%;
+        height: auto;
+        flex-shrink: 0;
+        box-shadow: 0 2px 5px var(--shadow-light); /* Shadow on bottom */
+        box-sizing: border-box; /* Include padding in width */
+    }
+
+    /* Make map container fill the rest of the screen */
+    #map-container {
+        width: 100%;
+        flex-grow: 1; /* This is key! */
+    }
+
+    /* Give the controls a little space from the map */
+    #controls {
+        margin-bottom: 10px;
+    }
+}
