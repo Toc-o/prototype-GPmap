@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rota ORS com Área de Evitação - Sorocaba</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #2c2c2e;
+    font-family: Arial, sans-serif;
+    color: #f1f1f1;
+  }
+  #sidebar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #2c2c2e;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    width: 330px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  h1 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+  }
+  p {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #get-route {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+  }
+  #clear-all {
+    background-color: #dc3545;
+    color: #fff;
+    font-weight: bold;
+  }
+  #map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Rota Segura - Sorocaba</h1>
+  <p>Clique em dois pontos fora da área vermelha para gerar a rota.</p>
+  
+  <select id="profile">
+    <option value="cycling-regular">Bicicleta</option>
+    <option value="foot-walking">A pé</option>
+  </select>
+
+  <button id="get-route">Gerar rota</button>
+  <button id="clear-all">Limpar tudo</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ==========================
+// 🔑 SUA CHAVE ORS AQUI
+// ==========================
+const ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjY0YzQ3ZTI0MDRkZjQ5ZWViZDlhMWI5NzhkYWE1ZDg0IiwiaCI6Im11cm11cjY0In0=";
+
+// Inicializa o mapa em Sorocaba
+const map = L.map('map').setView([-23.5015, -47.4526], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let markers = [];
+let routeLine;
+
+// === CÍRCULO DE EVITAÇÃO (SOROCABA) ===
+const avoidCenter = [-23.5015, -47.4526];
+const avoidRadius = 700; // 700m
+const avoidCircle = L.circle(avoidCenter, {
+  color: 'red',
+  fillColor: 'red',
+  fillOpacity: 0.25,
+  radius: avoidRadius
+}).addTo(map).bindPopup('Área de evitação');
+
+// === CONVERTER CÍRCULO PARA POLÍGONO ===
+function circleToPolygon(center, radius, points = 60) {
+  const coords = [];
+  const earthRadius = 6378137; // m
+  const lat = center[0] * Math.PI / 180;
+  const lon = center[1] * Math.PI / 180;
+  for (let i = 0; i < points; i++) {
+    const angle = (i / points) * (2 * Math.PI);
+    const dx = radius * Math.cos(angle);
+    const dy = radius * Math.sin(angle);
+    const latOffset = (dy / earthRadius) * (180 / Math.PI);
+    const lonOffset = (dx / (earthRadius * Math.cos(lat))) * (180 / Math.PI);
+    coords.push([center[1] + lonOffset, center[0] + latOffset]);
+  }
+  coords.push(coords[0]);
+  return [coords];
+}
+
+// === EVENTO DE CLIQUE ===
+map.on('click', (e) => {
+  const distance = map.distance(e.latlng, avoidCircle.getLatLng());
+  if (distance < avoidRadius) {
+    alert("Não é permitido selecionar dentro da área vermelha!");
+    return;
+  }
+  if (markers.length >= 2) {
+    alert("Máximo de 2 pontos. Limpe para adicionar novos.");
+    return;
+  }
+  const marker = L.marker(e.latlng).addTo(map);
+  markers.push(marker);
+});
+
+// === LIMPAR ===
+document.getElementById('clear-all').onclick = () => {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  if (routeLine) map.removeLayer(routeLine);
+};
+
+// === GERAR ROTA ===
+document.getElementById('get-route').onclick = async () => {
+  if (!ORS_API_KEY || ORS_API_KEY === "COLOQUE_SUA_API_KEY_AQUI")
+    return alert('⚠️ Insira sua chave ORS diretamente no código antes de continuar.');
+
+  if (markers.length < 2)
+    return alert('Selecione dois pontos no mapa.');
+
+  const profile = document.getElementById('profile').value;
+  const coords = markers.map(m => [m.getLatLng().lng, m.getLatLng().lat]);
+  const avoidPolygon = circleToPolygon(avoidCenter, avoidRadius);
+
+  const body = {
+    coordinates: coords,
+    format: "geojson",
+    options: {
+      avoid_polygons: {
+        type: "Polygon",
+        coordinates: avoidPolygon
+      }
+    }
+  };
+
+  try {
+    const res = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
+      method: "POST",
+      headers: {
+        "Authorization": ORS_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.features) {
+      console.error(data);
+      return alert("Erro ao calcular rota. Verifique sua chave ou tente outro ponto.");
+    }
+
+    const routeCoords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    if (routeLine) map.removeLayer(routeLine);
+    routeLine = L.polyline(routeCoords, { color: 'blue', weight: 4 }).addTo(map);
+    map.fitBounds(routeLine.getBounds());
+
+  } catch (err) {
+    console.error(err);
+    alert("Erro de conexão com o OpenRouteService.");
+  }
+};
+</script>
+</body>
+</html>
