@@ -21,37 +21,38 @@
             </label>
         </div>
 
-        <p>Click on the map to add points, or enter locations below.</p>
+        <p>Click on the map to add points, or enter locations below.</p><div id="warning-message"></div>
         
-        <div id="warning-message"></div>
         <div id="route-summary"></div>
 
         <div id="controls">
             <div class="input-container">
-                <div class="input-wrapper">
+
+                <div class="input-wrapper" id="from-loc-wrapper">
                     <span class="input-icon start-icon"></span>
                     <input type="text" id="from-loc" placeholder="Choose starting point..." autocomplete="off">
                     <div id="from-suggestions" class="autocomplete-suggestions"></div>
                 </div>
-
+                    
                 <div id="via-locations-container"></div>
-
-                <div class="input-wrapper">
+                
+                <div class="input-wrapper" id="to-loc-wrapper">
                     <span class="input-icon end-icon"></span>
                     <input type="text" id="to-loc" placeholder="Choose destination..." autocomplete="off">
                     <div id="to-suggestions" class="autocomplete-suggestions"></div>
                 </div>
-                <button id="swap-btn" title="Swap locations"></button>
-            </div>
 
-            <button id="add-location-btn">+ Add location</button>
+            </div>
             
+            <button id="add-location-btn">+ Add location</button>
             <button id="search-btn">Get Route</button>
         </div>
         
         <button id="clear-btn">Clear All</button>
     </div>
 
+    <div id="resizer"></div>
+    
     <div id="map-container">
         <div id="loader"></div>
         <div id="map"></div>

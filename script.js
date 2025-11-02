@@ -3,9 +3,6 @@ const apiKey = 'e9380a28-77e7-4c96-8aa7-66f93031a6f6';
 let points = [], markers = [], routeLayer = null;
 let routeColors = ['blue', 'red', 'green', 'orange', 'purple'], routeColorIndex = 0;
 
-// *** UPDATED: Changed routeLayer to be an array ***
-let routeLayers = [];
-
 // Get references to all key elements
 const fromInput = document.getElementById('from-loc');
 const toInput = document.getElementById('to-loc');
@@ -15,9 +12,8 @@ const loader = document.getElementById('loader');
 const warningEl = document.getElementById('warning-message');
 const themeToggle = document.getElementById('theme-toggle');
 const summaryEl = document.getElementById('route-summary');
-// *** NEW: Add references for via buttons ***
 const addLocationBtn = document.getElementById('add-location-btn');
-const viaLocationsContainer = document.getElementById('via-locations-container');
+// *** REMOVED viaLocationsContainer, it's not needed ***
 
 // Debounce functions
 const debouncedPlotRoute = debounce(plotRoute, 500);
@@ -46,104 +42,129 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // --- 4. EVENT LISTENERS ---
-
-// Map click to add a point
-map.on('click', function(e) {
-    addPoint(e.latlng.lat, e.latlng.lng);
-});
-
-// Button clicks
+map.on('click', function(e) { addPoint(e.latlng.lat, e.latlng.lng); });
 document.getElementById('clear-btn').addEventListener('click', clearMap);
-document.getElementById('search-btn').addEventListener('click', plotFromInputs);
-document.getElementById('swap-btn').addEventListener('click', () => {
-    const fromVal = fromInput.value;
-    const toVal = toInput.value;
-    const fromLat = fromInput.dataset.lat;
-    const fromLng = fromInput.dataset.lng;
-    const toLat = toInput.dataset.lat;
-    const toLng = toInput.dataset.lng;
-
-    fromInput.value = toVal;
-    toInput.value = fromVal;
-    
-    fromInput.dataset.lat = toLat;
-    fromInput.dataset.lng = toLng;
-    toInput.dataset.lat = fromLat;
-    toInput.dataset.lng = fromLng;
-});
-
-// Autocomplete "From" input
-fromInput.addEventListener('input', (e) => {
-    debouncedFetchAutocomplete(e.target.value, fromSuggestions, fromInput);
-});
-
-// Autocomplete "To" input
-toInput.addEventListener('input', (e) => {
-    debouncedFetchAutocomplete(e.target.value, toSuggestions, toInput);
-});
-
-// Hide suggestions when clicking anywhere else
+document.getElementById('search-btn').addEventListener('click', plotFromInputs); 
+// *** REMOVED old swap-btn listener ***
+fromInput.addEventListener('input', (e) => { debouncedFetchAutocomplete(e.target.value, fromSuggestions, fromInput); });
+toInput.addEventListener('input', (e) => { debouncedFetchAutocomplete(e.target.value, toSuggestions, toInput); });
 document.addEventListener('click', (e) => {
     if (!fromInput.contains(e.target)) fromSuggestions.style.display = 'none';
     if (!toInput.contains(e.target)) toSuggestions.style.display = 'none';
 });
-
-// *** NEW: "Add location" button listener ***
 addLocationBtn.addEventListener('click', addViaInput);
 
 // --- 5. CORE FUNCTIONS ---
 
 /**
- * Adds a new point to the map (max 5).
- */
-/**
- * --- *** NEW: Adds a "Via" input to the sidebar *** ---
+ * --- *** UPDATED: Adds a "Via" input to the sidebar *** ---
  */
 function addViaInput() {
-    // Get all location inputs (from, to, and via)
-    const currentInputs = document.querySelectorAll('#controls input[type="text"]');
-    // Check against total point limit (from + via + to)
-    if (currentInputs.length >= 5) {
+    // 1. Find all input wrappers
+    const currentInputWrappers = document.querySelectorAll('#controls .input-wrapper');
+    if (currentInputWrappers.length >= 5) {
         showWarning("You can only add a maximum of 5 points.");
         return;
     }
 
-    // Create all new elements
+    // 2. Create all new elements
     const wrapper = document.createElement('div');
     wrapper.className = 'input-wrapper via-input-wrapper';
+    wrapper.innerHTML = `
+        <span class="input-icon via-icon"></span>
+        <input type="text" placeholder="Via" autocomplete="off">
+        <div class="autocomplete-suggestions"></div>
+        <button class="remove-loc-btn" title="Remove location">&ndash;</button>
+    `;
+    
+    // 3. Add listeners to new elements
+    const input = wrapper.querySelector('input');
+    const suggestions = wrapper.querySelector('.autocomplete-suggestions');
+    const removeBtn = wrapper.querySelector('.remove-loc-btn');
 
-    const icon = document.createElement('span');
-    icon.className = 'input-icon via-icon';
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Via';
-    input.autocomplete = 'off';
-
-    const suggestions = document.createElement('div');
-    suggestions.className = 'autocomplete-suggestions';
-
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-loc-btn';
-    removeBtn.title = 'Remove location';
-    removeBtn.innerHTML = '&ndash;'; // Minus sign
-
-    // Add listeners to new elements
     input.addEventListener('input', (e) => {
         debouncedFetchAutocomplete(e.target.value, suggestions, input);
     });
     removeBtn.addEventListener('click', () => {
         wrapper.remove(); // Remove this "Via" input
+        updateSwapButtons(); // Re-draw swap buttons
     });
 
-    // Append new elements to the DOM
-    wrapper.appendChild(icon);
-    wrapper.appendChild(input);
-    wrapper.appendChild(suggestions);
-    wrapper.appendChild(removeBtn);
-    viaLocationsContainer.appendChild(wrapper);
+    // 4. *** THIS IS THE FIX ***
+    // Find the "To" wrapper and insert the new "Via" wrapper *before* it
+    const toWrapper = document.getElementById('to-loc-wrapper');
+    toWrapper.before(wrapper);
+    
+    // 5. Update the swap buttons
+    updateSwapButtons();
 }
 
+/**
+ * --- *** NEW: Swaps the content of two input fields *** ---
+ */
+function swapInputs(wrapperA, wrapperB) {
+    const inputA = wrapperA.querySelector('input');
+    const inputB = wrapperB.querySelector('input');
+
+    // Swap values
+    const tempVal = inputA.value;
+    inputA.value = inputB.value;
+    inputB.value = tempVal;
+
+    // Swap coordinates
+    const tempLat = inputA.dataset.lat;
+    const tempLng = inputA.dataset.lng;
+    inputA.dataset.lat = inputB.dataset.lat;
+    inputA.dataset.lng = inputB.dataset.lng;
+    inputB.dataset.lat = tempLat;
+    inputB.dataset.lng = tempLng;
+
+    // Clear any "ghost" coordinates
+    if (inputA.value === "") {
+        delete inputA.dataset.lat;
+        delete inputA.dataset.lng;
+    }
+    if (inputB.value === "") {
+        delete inputB.dataset.lat;
+        delete inputB.dataset.lng;
+    }
+}
+
+/**
+ * --- *** NEW: Clears and redraws all swap buttons *** ---
+ */
+function updateSwapButtons() {
+    // 1. Remove all existing swap buttons
+    document.querySelectorAll('.swap-btn-wrapper').forEach(btn => btn.remove());
+
+    // 2. *** THIS IS THE FIX ***
+    // Get all visible input wrappers *in their new order*
+    const allInputWrappers = document.querySelectorAll(
+        '#from-loc-wrapper, .via-input-wrapper, #to-loc-wrapper'
+    );
+
+    // 3. Loop and add a swap button *between* each one
+    for (let i = 0; i < allInputWrappers.length - 1; i++) {
+        const inputAbove = allInputWrappers[i];
+        const inputBelow = allInputWrappers[i+1];
+
+        // Create the swap button
+        const swapWrapper = document.createElement('div');
+        swapWrapper.className = 'swap-btn-wrapper';
+        const swapBtn = document.createElement('button');
+        swapBtn.className = 'swap-btn';
+        swapBtn.title = 'Swap locations';
+        
+        swapBtn.addEventListener('click', () => {
+            swapInputs(inputAbove, inputBelow);
+        });
+
+        swapWrapper.appendChild(swapBtn);
+
+        // Insert the swap button *after* the top input
+        inputAbove.after(swapWrapper);
+    }
+}
 
 /**
  * Adds a new point to the map (max 5) - *from map clicks*
@@ -308,7 +329,6 @@ async function plotRoute() {
 
 /**
  * --- *** NEW HELPER: Clears only map layers *** ---
- * This is called before plotting from inputs, to keep inputs intact.
  */
 function clearMapLayers() {
     if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
@@ -322,11 +342,14 @@ function clearMapLayers() {
 
 /**
  * --- *** UPDATED: Clears *everything* *** ---
- * This is for the "Clear All" button.
  */
 function clearMap() {
     clearMapLayers(); // Clears the map
-    viaLocationsContainer.innerHTML = ''; // Clears the via inputs
+    
+    // *** UPDATED: Find and remove all "Via" wrappers ***
+    document.querySelectorAll('.via-input-wrapper').forEach(wrapper => wrapper.remove());
+    
+    updateSwapButtons(); // Redraw the initial swap button
 }
 
 /**
@@ -365,7 +388,6 @@ function showSuggestions(hits, suggestionsEl, inputEl) {
                           .filter(Boolean) 
                           .join(', ');
         
-        // This makes the input value "Name, City, Country"
         const displayValue = [name, ...address.split(', ')]
                              .filter((value, index, self) => value && self.indexOf(value) === index)
                              .join(', ');
@@ -375,7 +397,7 @@ function showSuggestions(hits, suggestionsEl, inputEl) {
             <small>${address}</small>
         `;
         item.addEventListener('click', () => {
-            inputEl.value = displayValue; // Set full name to prevent geocoding errors
+            inputEl.value = displayValue; 
             inputEl.dataset.lat = hit.point.lat;
             inputEl.dataset.lng = hit.point.lng;
             suggestionsEl.style.display = 'none';
@@ -390,31 +412,27 @@ function showSuggestions(hits, suggestionsEl, inputEl) {
  */
 async function plotFromInputs() {
     loader.classList.add('visible'); 
-    
-    // *** Call the new function that *only* clears the map ***
     clearMapLayers(); 
 
-    // 1. Get all location inputs in order
-    const locationInputs = [
-        fromInput,
-        ...viaLocationsContainer.querySelectorAll('input[type="text"]'),
-        toInput
-    ];
-
+    // 1. *** UPDATED: Get all location inputs in their new order ***
+    const locationInputs = document.querySelectorAll(
+        '#from-loc-wrapper input[type="text"], .via-input-wrapper input[type="text"], #to-loc-wrapper input[type="text"]'
+    );
+    
     // 2. Create an array of geocoding promises
-    const geocodePromises = locationInputs.map(input => {
+    const geocodePromises = Array.from(locationInputs).map(input => {
         const query = input.value;
-        if (!query) return null; // Skip empty inputs
+        if (!query) return null; 
         if (input.dataset.lat && input.dataset.lng) {
             return Promise.resolve([input.dataset.lat, input.dataset.lng]);
         }
-        return geocode(query); // Fallback geocode
+        return geocode(query);
     });
 
     try {
         // 3. Run all geocoding requests
         const allCoords = (await Promise.all(geocodePromises))
-                            .filter(Boolean); // Filter out nulls
+                            .filter(Boolean); 
 
         if (allCoords.length < 2) {
             showWarning("Please provide at least two locations.");
@@ -457,7 +475,7 @@ async function plotFromInputs() {
         plotRoute();
 
         // 7. Clear dataset properties
-        locationInputs.forEach(input => {
+        Array.from(locationInputs).forEach(input => {
             delete input.dataset.lat;
             delete input.dataset.lng;
         });
@@ -513,3 +531,50 @@ function showWarning(message) {
         }, 300);
     }, 3000);
 }
+
+// --- Initial call to create the first swap button ---
+updateSwapButtons();
+
+// --- Sidebar Resizer Logic ---
+const sidebar = document.getElementById('sidebar');
+const resizer = document.getElementById('resizer');
+const mapContainer = document.getElementById('map-container');
+
+// Min/max widths for the sidebar
+const minWidth = 280;
+const maxWidth = 600;
+
+function onMouseDown(e) {
+    // Only resize if on desktop
+    if (window.innerWidth <= 900) return;
+
+    // Prevent text selection
+    e.preventDefault();
+
+    // Attach listeners to the *whole document*
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', onStopDrag);
+}
+
+function onDrag(e) {
+    let newWidth = e.clientX;
+
+    // Apply min/max constraints
+    if (newWidth < minWidth) newWidth = minWidth;
+    if (newWidth > maxWidth) newWidth = maxWidth;
+
+    // Apply the new width
+    sidebar.style.width = newWidth + 'px';
+    
+    // Invalidate map size so Leaflet redraws it correctly
+    map.invalidateSize();
+}
+
+function onStopDrag() {
+    // Remove listeners from the document
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', onStopDrag);
+}
+
+// Attach the initial mousedown listener to the resizer
+resizer.addEventListener('mousedown', onMouseDown);
